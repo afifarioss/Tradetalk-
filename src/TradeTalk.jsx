@@ -133,7 +133,7 @@ export default function TradeTalk() {
       setMessages(prev => [...prev, {
         id: Date.now(),
         user: "Luna",
-        text: `Trade executed! Swapped ${tradeAmount} USDC → ${estimatedOutput} ${selectedToken.symbol}. (Real tx coming next)`,
+        text: `Trade executed! Swapped ${tradeAmount} USDC → ${estimatedOutput} ${selectedToken.symbol}. (Real onchain tx coming next)`,
         time: "now"
       }]);
       setShowTradePanel(false);
