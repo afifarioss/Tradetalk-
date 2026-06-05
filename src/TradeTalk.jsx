@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function TradeTalk() {
   const [prices, setPrices] = useState({
@@ -14,6 +14,10 @@ export default function TradeTalk() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [tips, setTips] = useState(1240);
   const [isMobile, setIsMobile] = useState(false);
+
+  const canvasRef = useRef(null);
+  const particlesRef = useRef([]);
+  const animationRef = useRef(null);
 
   // Mobile detection
   useEffect(() => {
@@ -34,6 +38,91 @@ export default function TradeTalk() {
     }, 6800);
     return () => clearInterval(interval);
   }, []);
+
+  // Canvas Particle System
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { alpha: true });
+    let particles = particlesRef.current;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Create particles
+    const createParticles = () => {
+      particles.length = 0;
+      const count = isMobile ? 45 : 70;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25,
+          size: Math.random() * 2.2 + 0.8,
+          opacity: Math.random() * 0.5 + 0.25
+        });
+      }
+    };
+    createParticles();
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw particles
+      ctx.fillStyle = '#94a3b8';
+      for (let p of particles) {
+        ctx.globalAlpha = p.opacity;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Update position
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Wrap around edges
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+      }
+
+      // Draw faint connection lines
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 140) {
+            ctx.globalAlpha = (1 - dist / 140) * 0.35;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.globalAlpha = 1;
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [isMobile]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -56,7 +145,6 @@ export default function TradeTalk() {
     alert("Wallet connected successfully! (Demo mode)");
   };
 
-  // Glassmorphism style
   const glassStyle = {
     background: "rgba(15, 23, 42, 0.65)",
     backdropFilter: "blur(20px)",
@@ -73,20 +161,32 @@ export default function TradeTalk() {
       overflow: "hidden"
     }}>
       
-      {/* Animated Gradient Background */}
+      {/* Canvas Particles Background */}
+      <canvas 
+        ref={canvasRef} 
+        style={{ 
+          position: "fixed", 
+          top: 0, 
+          left: 0, 
+          zIndex: 0,
+          pointerEvents: "none"
+        }} 
+      />
+
+      {/* Animated Gradient Overlay */}
       <div style={{
         position: "fixed",
         top: 0,
         left: 0,
         width: "100%",
         height: "100%",
-        zIndex: -1,
+        zIndex: 0,
         background: "linear-gradient(-45deg, #05070f, #0a0f1e, #0f172a, #1e1135)",
         backgroundSize: "400% 400%",
-        animation: "gradientShift 28s ease infinite"
+        animation: "gradientShift 32s ease infinite",
+        opacity: 0.85
       }} />
 
-      {/* Keyframes for animation */}
       <style>{`
         @keyframes gradientShift {
           0% { background-position: 0% 50%; }
@@ -105,7 +205,7 @@ export default function TradeTalk() {
         alignItems: isMobile ? "flex-start" : "center",
         gap: "14px",
         position: "relative",
-        zIndex: 1
+        zIndex: 2
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", letterSpacing: "-0.6px" }}>TradeTalk</h1>
@@ -159,7 +259,7 @@ export default function TradeTalk() {
         maxWidth: "1120px", 
         margin: "0 auto",
         position: "relative",
-        zIndex: 1
+        zIndex: 2
       }}>
         
         {/* Live Prices */}
@@ -213,7 +313,7 @@ export default function TradeTalk() {
           alignItems: "flex-start"
         }}>
           
-          {/* Chat Panel (Glass) */}
+          {/* Chat Panel */}
           <div style={{ 
             flex: 1,
             ...glassStyle,
@@ -304,7 +404,7 @@ export default function TradeTalk() {
             </div>
           </div>
 
-          {/* Sidebar (Glass Cards) */}
+          {/* Sidebar */}
           <div style={{ 
             width: isMobile ? "100%" : "360px",
             display: "flex", 
@@ -312,7 +412,7 @@ export default function TradeTalk() {
             gap: "18px"
           }}>
             
-            {/* Tips Balance (Glass) */}
+            {/* Tips Balance */}
             <div style={{ 
               ...glassStyle,
               borderRadius: "18px", 
@@ -341,7 +441,7 @@ export default function TradeTalk() {
               </button>
             </div>
 
-            {/* Leaderboard (Glass) */}
+            {/* Leaderboard */}
             <div style={{ 
               ...glassStyle,
               borderRadius: "18px", 
