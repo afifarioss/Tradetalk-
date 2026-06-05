@@ -56,13 +56,45 @@ export default function TradeTalk() {
     alert("Wallet connected successfully! (Demo mode)");
   };
 
+  // Glassmorphism style
+  const glassStyle = {
+    background: "rgba(15, 23, 42, 0.65)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(148, 163, 184, 0.15)"
+  };
+
   return (
     <div style={{ 
       minHeight: "100vh", 
-      background: "#05070f", 
       color: "#fff", 
-      fontFamily: "system-ui, -apple-system, sans-serif"
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      position: "relative",
+      overflow: "hidden"
     }}>
+      
+      {/* Animated Gradient Background */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: -1,
+        background: "linear-gradient(-45deg, #05070f, #0a0f1e, #0f172a, #1e1135)",
+        backgroundSize: "400% 400%",
+        animation: "gradientShift 28s ease infinite"
+      }} />
+
+      {/* Keyframes for animation */}
+      <style>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ 
         padding: isMobile ? "14px 16px" : "18px 28px", 
@@ -71,7 +103,9 @@ export default function TradeTalk() {
         flexDirection: isMobile ? "column" : "row",
         justifyContent: "space-between",
         alignItems: isMobile ? "flex-start" : "center",
-        gap: "14px"
+        gap: "14px",
+        position: "relative",
+        zIndex: 1
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", letterSpacing: "-0.6px" }}>TradeTalk</h1>
@@ -123,7 +157,9 @@ export default function TradeTalk() {
       <div style={{ 
         padding: isMobile ? "18px 16px" : "28px 28px", 
         maxWidth: "1120px", 
-        margin: "0 auto" 
+        margin: "0 auto",
+        position: "relative",
+        zIndex: 1
       }}>
         
         {/* Live Prices */}
@@ -144,9 +180,8 @@ export default function TradeTalk() {
           }}>
             {Object.entries(prices).map(([symbol, data]) => (
               <div key={symbol} style={{
-                background: "#0f172a",
-                border: "1px solid #1e2937",
-                borderRadius: "14px",
+                ...glassStyle,
+                borderRadius: "16px",
                 padding: "18px 20px"
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -178,12 +213,11 @@ export default function TradeTalk() {
           alignItems: "flex-start"
         }}>
           
-          {/* Chat */}
+          {/* Chat Panel (Glass) */}
           <div style={{ 
             flex: 1,
-            background: "#0f172a", 
-            border: "1px solid #1e2937", 
-            borderRadius: "16px", 
+            ...glassStyle,
+            borderRadius: "18px", 
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
@@ -191,8 +225,8 @@ export default function TradeTalk() {
             width: "100%"
           }}>
             <div style={{ 
-              padding: "15px 20px", 
-              borderBottom: "1px solid #1e2937", 
+              padding: "16px 20px", 
+              borderBottom: "1px solid rgba(148, 163, 184, 0.12)", 
               fontWeight: "600",
               fontSize: "15.5px"
             }}>
@@ -232,7 +266,7 @@ export default function TradeTalk() {
 
             <div style={{ 
               padding: "15px 18px", 
-              borderTop: "1px solid #1e2937",
+              borderTop: "1px solid rgba(148, 163, 184, 0.12)",
               display: "flex",
               gap: "10px"
             }}>
@@ -243,9 +277,9 @@ export default function TradeTalk() {
                 placeholder="Ask Luna about the market..."
                 style={{
                   flex: 1,
-                  background: "#1e2937",
-                  border: "1px solid #334155",
-                  borderRadius: "11px",
+                  background: "rgba(30, 41, 59, 0.6)",
+                  border: "1px solid rgba(148, 163, 184, 0.2)",
+                  borderRadius: "12px",
                   padding: "14px 18px",
                   color: "#fff",
                   fontSize: "15.5px",
@@ -259,7 +293,7 @@ export default function TradeTalk() {
                   color: "#fff",
                   border: "none",
                   padding: "0 26px",
-                  borderRadius: "11px",
+                  borderRadius: "12px",
                   fontWeight: "700",
                   fontSize: "15.5px",
                   cursor: "pointer"
@@ -270,7 +304,7 @@ export default function TradeTalk() {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar (Glass Cards) */}
           <div style={{ 
             width: isMobile ? "100%" : "360px",
             display: "flex", 
@@ -278,17 +312,16 @@ export default function TradeTalk() {
             gap: "18px"
           }}>
             
-            {/* Tips Balance */}
+            {/* Tips Balance (Glass) */}
             <div style={{ 
-              background: "#0f172a", 
-              border: "1px solid #1e2937", 
-              borderRadius: "16px", 
-              padding: "22px 24px" 
+              ...glassStyle,
+              borderRadius: "18px", 
+              padding: "24px 26px" 
             }}>
               <div style={{ fontSize: "13.5px", color: "#64748b", marginBottom: "8px" }}>
                 Your Tips Balance
               </div>
-              <div style={{ fontSize: "36px", fontWeight: "700", marginBottom: "16px" }}>
+              <div style={{ fontSize: "38px", fontWeight: "700", marginBottom: "18px" }}>
                 {tips}
               </div>
               <button 
@@ -298,8 +331,8 @@ export default function TradeTalk() {
                   background: "#22c55e",
                   color: "#000",
                   border: "none",
-                  padding: "14px",
-                  borderRadius: "11px",
+                  padding: "15px",
+                  borderRadius: "12px",
                   fontWeight: "700",
                   fontSize: "15.5px"
                 }}
@@ -308,12 +341,11 @@ export default function TradeTalk() {
               </button>
             </div>
 
-            {/* Leaderboard */}
+            {/* Leaderboard (Glass) */}
             <div style={{ 
-              background: "#0f172a", 
-              border: "1px solid #1e2937", 
-              borderRadius: "16px", 
-              padding: "20px 24px" 
+              ...glassStyle,
+              borderRadius: "18px", 
+              padding: "22px 26px" 
             }}>
               <div style={{ fontWeight: "600", marginBottom: "16px", fontSize: "15px" }}>
                 Top Tip Earners
@@ -326,8 +358,8 @@ export default function TradeTalk() {
                 <div key={i} style={{ 
                   display: "flex", 
                   justifyContent: "space-between",
-                  padding: "9px 0",
-                  borderBottom: i < 2 ? "1px solid #1e2937" : "none",
+                  padding: "10px 0",
+                  borderBottom: i < 2 ? "1px solid rgba(148, 163, 184, 0.12)" : "none",
                   fontSize: "15px"
                 }}>
                   <span>{row.user}</span>
