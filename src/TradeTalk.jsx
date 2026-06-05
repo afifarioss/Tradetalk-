@@ -1,62 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// ============================================
-// BASE MCP SIMULATION LAYER (Ready for real integration)
-// ============================================
-const mockMCPActions = {
-  checkPortfolio: async () => {
-    return {
-      success: true,
-      data: {
-        eth: "1.24",
-        usdc: "342.50",
-        totalUSD: "2847.32"
-      }
-    };
-  },
-  
-  suggestSwap: async (from, to) => {
-    return {
-      success: true,
-      suggestion: `Swap 0.5 ETH → ${to}`,
-      estimatedOutput: "1243.67 USDC",
-      gasSponsored: true
-    };
-  },
+// Popular Base tokens (expandable later)
+const BASE_TOKENS = [
+  { symbol: "ETH", name: "Ethereum", price: 2456.78, change: 2.34, type: "bluechip" },
+  { symbol: "USDC", name: "USD Coin", price: 0.9998, change: 0.01, type: "stable" },
+  { symbol: "DAI", name: "Dai Stablecoin", price: 1.0001, change: 0.02, type: "stable" },
+  { symbol: "WETH", name: "Wrapped Ether", price: 2455.12, change: 2.31, type: "bluechip" },
+  { symbol: "BRETT", name: "Brett", price: 0.0065, change: 4.82, type: "meme" },
+  { symbol: "TOSHI", name: "Toshi", price: 0.000416, change: 7.35, type: "meme" },
+  { symbol: "DEGEN", name: "Degen", price: 0.00093, change: 12.4, type: "meme" },
+  { symbol: "MIGGLES", name: "Mr. Miggles", price: 0.095, change: -3.2, type: "meme" },
+  { symbol: "SKI", name: "Ski Mask Dog", price: 0.0056, change: 5.1, type: "meme" },
+  { symbol: "AERO", name: "Aerodrome", price: 0.87, change: 3.45, type: "defi" },
+  { symbol: "MORPHO", name: "Morpho", price: 1.84, change: 1.9, type: "defi" },
+  { symbol: "LINK", name: "Chainlink", price: 7.91, change: -1.2, type: "bluechip" },
+];
 
-  sendTip: async (amount, to) => {
-    return {
-      success: true,
-      txHash: "0x" + Math.random().toString(16).slice(2, 10),
-      message: `Sent ${amount} tips to ${to} (gas sponsored)`
-    };
-  }
-};
-
-// ============================================
-// MAIN COMPONENT
-// ============================================
 export default function TradeTalk() {
-  const [prices, setPrices] = useState({
-    ETH: { price: 2456.78, change: 2.34 },
-    BTC: { price: 67234.56, change: -1.23 },
-    BASE: { price: 0.00001234, change: 5.67 }
-  });
-
+  const [prices, setPrices] = useState(BASE_TOKENS);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedToken, setSelectedToken] = useState(null);
+  const [tradeAmount, setTradeAmount] = useState("");
+  const [estimatedOutput, setEstimatedOutput] = useState("");
   const [messages, setMessages] = useState([
-    { 
-      id: 1, 
-      user: "Luna", 
-      text: "I'm now connected to Base MCP. I can check your portfolio, suggest swaps, and help you execute actions with sponsored gas. What would you like to do?", 
-      time: "just now",
-      type: "text"
-    }
+    { id: 1, user: "Luna", text: "I'm connected to Base MCP. Search any token and trade it with sponsored gas. What do you want to do?", time: "just now" }
   ]);
-  
   const [input, setInput] = useState("");
   const [walletConnected, setWalletConnected] = useState(false);
   const [tips, setTips] = useState(1240);
   const [isMobile, setIsMobile] = useState(false);
+  const [showTradePanel, setShowTradePanel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const canvasRef = useRef(null);
@@ -71,34 +44,30 @@ export default function TradeTalk() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Live prices
+  // Live price simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      setPrices(prev => ({
-        ETH: { ...prev.ETH, price: prev.ETH.price + (Math.random() - 0.5) * 2.8 },
-        BTC: { ...prev.BTC, price: prev.BTC.price + (Math.random() - 0.5) * 28 },
-        BASE: { ...prev.BASE, price: prev.BASE.price + (Math.random() - 0.5) * 0.0000006 }
-      }));
-    }, 6800);
+      setPrices(prev => prev.map(token => ({
+        ...token,
+        price: token.price * (1 + (Math.random() - 0.5) * 0.008),
+        change: parseFloat((token.change + (Math.random() - 0.5) * 0.8).toFixed(2))
+      })));
+    }, 6500);
     return () => clearInterval(interval);
   }, []);
 
-  // Canvas Particles (same as before)
+  // Canvas Particles
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d', { alpha: true });
     let particles = particlesRef.current;
 
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
 
-    const createParticles = () => {
+    const create = () => {
       particles.length = 0;
       const count = isMobile ? 45 : 70;
       for (let i = 0; i < count; i++) {
@@ -112,27 +81,22 @@ export default function TradeTalk() {
         });
       }
     };
-    createParticles();
+    create();
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#94a3b8';
-      
       for (let p of particles) {
         ctx.globalAlpha = p.opacity;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-
-        p.x += p.vx;
-        p.y += p.vy;
-
+        p.x += p.vx; p.y += p.vy;
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
       }
-
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
       ctx.lineWidth = 0.8;
       for (let i = 0; i < particles.length; i++) {
@@ -152,110 +116,75 @@ export default function TradeTalk() {
       ctx.globalAlpha = 1;
       animationRef.current = requestAnimationFrame(draw);
     };
-
     draw();
+
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', resize);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [isMobile]);
 
-  // ============================================
-  // BASE MCP + GAS SPONSORSHIP HANDLER
-  // ============================================
-  const handleMCPAction = async (actionType) => {
+  // Filtered tokens based on search
+  const filteredTokens = prices.filter(token =>
+    token.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    token.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Open trade panel for a token
+  const openTrade = (token) => {
+    setSelectedToken(token);
+    setTradeAmount("");
+    setEstimatedOutput("");
+    setShowTradePanel(true);
+  };
+
+  // Simple simulated swap calculation
+  const calculateSwap = (amount) => {
+    if (!selectedToken || !amount) {
+      setEstimatedOutput("");
+      return;
+    }
+    const fromToken = prices.find(t => t.symbol === "USDC") || prices[1];
+    const rate = fromToken.price / selectedToken.price;
+    const output = (parseFloat(amount) * rate).toFixed(4);
+    setEstimatedOutput(output);
+  };
+
+  const executeTrade = () => {
+    if (!selectedToken || !tradeAmount) return;
     setIsProcessing(true);
 
-    let responseText = "";
-    let actionData = null;
-
-    try {
-      if (actionType === "checkPortfolio") {
-        const result = await mockMCPActions.checkPortfolio();
-        responseText = `Your current portfolio: ${result.data.eth} ETH + ${result.data.usdc} USDC (≈ $${result.data.totalUSD})`;
-        actionData = result.data;
-      } 
-      
-      else if (actionType === "suggestSwap") {
-        const result = await mockMCPActions.suggestSwap("ETH", "USDC");
-        responseText = `I suggest: \( {result.suggestion} → You would receive \~ \){result.estimatedOutput}. Gas will be sponsored.`;
-        actionData = result;
-      } 
-      
-      else if (actionType === "sendTip") {
-        const result = await mockMCPActions.sendTip("50", "@afifarioss");
-        responseText = `Tip sent successfully! Tx: ${result.txHash}. Gas was sponsored by Base Paymaster.`;
-        actionData = result;
-      }
-
-      // Add Luna's response
+    setTimeout(() => {
       setMessages(prev => [...prev, {
         id: Date.now(),
         user: "Luna",
-        text: responseText,
-        time: "now",
-        type: "mcp",
-        actionData
-      }]);
-
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        user: "Luna",
-        text: "Sorry, there was an error connecting to Base MCP. Please try again.",
+        text: `Trade executed! Swapped ${tradeAmount} USDC → ${estimatedOutput} ${selectedToken.symbol}. Gas was sponsored by Base Paymaster.`,
         time: "now"
       }]);
-    }
-
-    setIsProcessing(false);
+      setShowTradePanel(false);
+      setTradeAmount("");
+      setEstimatedOutput("");
+      setIsProcessing(false);
+      // Give user some tips for trading
+      setTips(prev => prev + 25);
+    }, 900);
   };
 
   const handleSend = () => {
     if (!input.trim()) return;
-
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      user: "You",
-      text: input,
-      time: "now"
-    }]);
-
-    // Simple intent detection for MCP
-    const lowerInput = input.toLowerCase();
-    
-    setTimeout(() => {
-      if (lowerInput.includes("portfolio") || lowerInput.includes("balance")) {
-        handleMCPAction("checkPortfolio");
-      } 
-      else if (lowerInput.includes("swap") || lowerInput.includes("trade")) {
-        handleMCPAction("suggestSwap");
-      } 
-      else if (lowerInput.includes("tip") || lowerInput.includes("send")) {
-        handleMCPAction("sendTip");
-      } 
-      else {
-        setMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          user: "Luna",
-          text: "I can help you check portfolio, suggest swaps, or send tips using Base MCP with sponsored gas. Try saying 'check my portfolio' or 'suggest a swap'.",
-          time: "now"
-        }]);
-      }
-    }, 700);
-
+    setMessages(prev => [...prev, { id: Date.now(), user: "You", text: input, time: "now" }]);
     setInput("");
   };
 
   const handleShareAlpha = () => {
-    const text = "Just shipped TradeTalk v0.4 on Base — now powered by Base MCP + Gas Sponsorship. https://tradetalk-ten.vercel.app";
+    const text = "Just shipped TradeTalk v0.4 on Base — now with full token discovery + trade flow. https://tradetalk-ten.vercel.app";
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
     setTips(prev => prev + 50);
-    alert("Thanks for sharing! +50 tips added.");
   };
 
   const connectWallet = () => {
     setWalletConnected(true);
-    alert("Wallet connected! (Demo mode - real wagmi integration coming next)");
+    alert("Wallet connected (Demo)");
   };
 
   const glassStyle = {
@@ -266,18 +195,10 @@ export default function TradeTalk() {
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      color: "#fff", 
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      position: "relative",
-      overflow: "hidden"
-    }}>
+    <div style={{ minHeight: "100vh", color: "#fff", fontFamily: "system-ui, -apple-system, sans-serif", position: "relative", overflow: "hidden" }}>
       
-      {/* Canvas Particles */}
       <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, zIndex: 0, pointerEvents: "none" }} />
 
-      {/* Animated Gradient */}
       <div style={{
         position: "fixed", top: 0, left: 0, width: "100%", height: "100%", zIndex: 0,
         background: "linear-gradient(-45deg, #05070f, #0a0f1e, #0f172a, #1e1135)",
@@ -295,77 +216,70 @@ export default function TradeTalk() {
       `}</style>
 
       {/* Header */}
-      <div style={{ 
-        padding: isMobile ? "14px 16px" : "18px 28px", 
-        borderBottom: "1px solid #1a2332",
-        display: "flex",
-        flexDirection: isMobile ? "column" : "row",
-        justifyContent: "space-between",
-        alignItems: isMobile ? "flex-start" : "center",
-        gap: "14px",
-        position: "relative",
-        zIndex: 2
-      }}>
+      <div style={{ padding: isMobile ? "14px 16px" : "18px 28px", borderBottom: "1px solid #1a2332", display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: "14px", position: "relative", zIndex: 2 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", letterSpacing: "-0.6px" }}>TradeTalk</h1>
-          <p style={{ margin: 0, fontSize: "13.5px", color: "#64748b" }}>Social Trading Mini-App on Base</p>
+          <p style={{ margin: 0, fontSize: "13.5px", color: "#64748b" }}>Social Trading on Base</p>
         </div>
-
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
-          <button onClick={handleShareAlpha} style={{
-            flex: isMobile ? 1 : "none",
-            background: "#22c55e", color: "#000", border: "none",
-            padding: "12px 20px", borderRadius: "10px", fontWeight: "700", fontSize: "14.5px"
-          }}>
+          <button onClick={handleShareAlpha} style={{ flex: isMobile ? 1 : "none", background: "#22c55e", color: "#000", border: "none", padding: "12px 20px", borderRadius: "10px", fontWeight: "700", fontSize: "14.5px" }}>
             Share Alpha → Earn Tips
           </button>
-
-          <button onClick={connectWallet} style={{
-            flex: isMobile ? 1 : "none",
-            background: walletConnected ? "#166534" : "#1e2937",
-            color: "#fff", border: "1px solid #334155",
-            padding: "12px 20px", borderRadius: "10px", fontWeight: "600", fontSize: "14.5px"
-          }}>
-            {walletConnected ? "✓ Wallet Connected" : "Connect Wallet"}
+          <button onClick={connectWallet} style={{ flex: isMobile ? 1 : "none", background: walletConnected ? "#166534" : "#1e2937", color: "#fff", border: "1px solid #334155", padding: "12px 20px", borderRadius: "10px", fontWeight: "600", fontSize: "14.5px" }}>
+            {walletConnected ? "✓ Connected" : "Connect Wallet"}
           </button>
         </div>
       </div>
 
-      <div style={{ padding: isMobile ? "18px 16px" : "28px 28px", maxWidth: "1120px", margin: "0 auto", position: "relative", zIndex: 2 }}>
+      <div style={{ padding: isMobile ? "18px 16px" : "28px 28px", maxWidth: "1180px", margin: "0 auto", position: "relative", zIndex: 2 }}>
         
-        {/* Live Prices */}
+        {/* Live Prices + Search */}
         <div style={{ marginBottom: isMobile ? "22px" : "30px" }}>
-          <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "12px", color: "#94a3b8", paddingLeft: "4px" }}>
-            Live Prices on Base
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "12px" }}>
+            <div style={{ fontSize: "15px", fontWeight: "600", color: "#94a3b8" }}>Tokens on Base</div>
+            <input
+              type="text"
+              placeholder="Search tokens (BRETT, TOSHI, AERO...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ background: "#1e2937", border: "1px solid #334155", borderRadius: "10px", padding: "10px 16px", color: "#fff", width: isMobile ? "100%" : "280px", fontSize: "14.5px" }}
+            />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
-            {Object.entries(prices).map(([symbol, data]) => (
-              <div key={symbol} style={{ ...glassStyle, borderRadius: "16px", padding: "18px 20px" }}>
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px" }}>
+            {filteredTokens.map((token) => (
+              <div key={token.symbol} style={{ ...glassStyle, borderRadius: "14px", padding: "16px 18px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
-                    <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>{symbol}</div>
-                    <div style={{ fontSize: "23px", fontWeight: "700", letterSpacing: "-0.4px" }}>
-                      ${data.price.toFixed(symbol === "BASE" ? 8 : 2)}
+                    <div style={{ fontSize: "15px", fontWeight: "700" }}>{token.symbol}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>{token.name}</div>
+                    <div style={{ fontSize: "20px", fontWeight: "700", marginTop: "6px" }}>
+                      ${token.price.toFixed(token.price < 1 ? 6 : 2)}
                     </div>
                   </div>
-                  <div style={{ color: data.change >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700", fontSize: "15px", paddingTop: "5px" }}>
-                    {data.change >= 0 ? "+" : ""}{data.change}%
+                  <div style={{ color: token.change >= 0 ? "#22c55e" : "#ef4444", fontWeight: "700", fontSize: "14px" }}>
+                    {token.change >= 0 ? "+" : ""}{token.change}%
                   </div>
                 </div>
+                <button 
+                  onClick={() => openTrade(token)}
+                  style={{ marginTop: "14px", width: "100%", background: "#3b82f6", color: "#fff", border: "none", padding: "10px", borderRadius: "10px", fontWeight: "700", fontSize: "14.5px" }}
+                >
+                  Trade {token.symbol}
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "20px", alignItems: "flex-start" }}>
+        {/* Main Content: Chat + Sidebar */}
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "20px" }}>
           
           {/* Chat */}
-          <div style={{ flex: 1, ...glassStyle, borderRadius: "18px", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: isMobile ? "440px" : "500px", width: "100%" }}>
+          <div style={{ flex: 1, ...glassStyle, borderRadius: "18px", overflow: "hidden", display: "flex", flexDirection: "column", minHeight: isMobile ? "440px" : "500px" }}>
             <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(148, 163, 184, 0.12)", fontWeight: "600", fontSize: "15.5px" }}>
-              Live Trading Chat <span style={{ color: "#64748b", fontWeight: "400" }}>— Luna (Base MCP Agent)</span>
+              Live Trading Chat — Luna (Base MCP)
             </div>
-
             <div style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "18px" }}>
               {messages.map(msg => (
                 <div key={msg.id}>
@@ -373,38 +287,19 @@ export default function TradeTalk() {
                     <strong style={{ color: msg.user === "Luna" ? "#60a5fa" : "#22c55e", fontSize: "15px" }}>{msg.user}</strong>
                     <span style={{ fontSize: "12px", color: "#475569" }}>{msg.time}</span>
                   </div>
-                  <div style={{ color: "#e2e8f0", fontSize: "15.5px", lineHeight: "1.55" }}>
-                    {msg.text}
-                  </div>
-                  {msg.type === "mcp" && msg.actionData && (
-                    <div style={{ marginTop: "8px", fontSize: "13px", color: "#64748b" }}>
-                      (Base MCP + Gas Sponsored)
-                    </div>
-                  )}
+                  <div style={{ color: "#e2e8f0", fontSize: "15.5px", lineHeight: "1.55" }}>{msg.text}</div>
                 </div>
               ))}
-              {isProcessing && (
-                <div style={{ color: "#64748b", fontSize: "14px" }}>Luna is processing via Base MCP...</div>
-              )}
+              {isProcessing && <div style={{ color: "#64748b", fontSize: "14px" }}>Executing trade with sponsored gas...</div>}
             </div>
-
             <div style={{ padding: "15px 18px", borderTop: "1px solid rgba(148, 163, 184, 0.12)", display: "flex", gap: "10px" }}>
-              <input 
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyPress={e => e.key === "Enter" && handleSend()}
-                placeholder="Try: check portfolio, suggest swap, or send tip"
-                style={{ flex: 1, background: "rgba(30, 41, 59, 0.6)", border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: "12px", padding: "14px 18px", color: "#fff", fontSize: "15.5px", outline: "none" }}
-              />
-              <button onClick={handleSend} style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "0 26px", borderRadius: "12px", fontWeight: "700", fontSize: "15.5px" }}>
-                Send
-              </button>
+              <input value={input} onChange={e => setInput(e.target.value)} onKeyPress={e => e.key === "Enter" && handleSend()} placeholder="Ask Luna anything..." style={{ flex: 1, background: "rgba(30, 41, 59, 0.6)", border: "1px solid rgba(148, 163, 184, 0.2)", borderRadius: "12px", padding: "14px 18px", color: "#fff", fontSize: "15.5px", outline: "none" }} />
+              <button onClick={handleSend} style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "0 26px", borderRadius: "12px", fontWeight: "700", fontSize: "15.5px" }}>Send</button>
             </div>
           </div>
 
           {/* Sidebar */}
           <div style={{ width: isMobile ? "100%" : "360px", display: "flex", flexDirection: "column", gap: "18px" }}>
-            
             <div style={{ ...glassStyle, borderRadius: "18px", padding: "24px 26px" }}>
               <div style={{ fontSize: "13.5px", color: "#64748b", marginBottom: "8px" }}>Your Tips Balance</div>
               <div style={{ fontSize: "38px", fontWeight: "700", marginBottom: "18px" }}>{tips}</div>
@@ -412,26 +307,54 @@ export default function TradeTalk() {
                 Share Alpha → Earn More Tips
               </button>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div style={{ ...glassStyle, borderRadius: "18px", padding: "22px 26px" }}>
-              <div style={{ fontWeight: "600", marginBottom: "16px", fontSize: "15px" }}>Quick MCP Actions</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <button onClick={() => handleMCPAction("checkPortfolio")} style={{ background: "#1e2937", color: "#fff", border: "1px solid #334155", padding: "12px", borderRadius: "10px", fontSize: "14.5px" }}>
-                  Check My Portfolio
-                </button>
-                <button onClick={() => handleMCPAction("suggestSwap")} style={{ background: "#1e2937", color: "#fff", border: "1px solid #334155", padding: "12px", borderRadius: "10px", fontSize: "14.5px" }}>
-                  Suggest a Swap
-                </button>
-                <button onClick={() => handleMCPAction("sendTip")} style={{ background: "#1e2937", color: "#fff", border: "1px solid #334155", padding: "12px", borderRadius: "10px", fontSize: "14.5px" }}>
-                  Send 50 Tips (Gas Sponsored)
-                </button>
+      {/* Trade Panel Modal */}
+      {showTradePanel && selectedToken && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
+          <div style={{ ...glassStyle, borderRadius: "20px", padding: "28px", width: "100%", maxWidth: "420px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+              <div>
+                <div style={{ fontSize: "20px", fontWeight: "700" }}>Trade {selectedToken.symbol}</div>
+                <div style={{ color: "#64748b", fontSize: "14px" }}>{selectedToken.name}</div>
+              </div>
+              <button onClick={() => setShowTradePanel(false)} style={{ background: "transparent", color: "#fff", border: "none", fontSize: "24px" }}>×</button>
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "6px" }}>You Pay (USDC)</div>
+              <input 
+                type="number" 
+                value={tradeAmount} 
+                onChange={(e) => { setTradeAmount(e.target.value); calculateSwap(e.target.value); }}
+                placeholder="0.00" 
+                style={{ width: "100%", background: "#1e2937", border: "1px solid #334155", borderRadius: "12px", padding: "14px 18px", color: "#fff", fontSize: "20px" }} 
+              />
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "6px" }}>You Receive (estimated)</div>
+              <div style={{ background: "#1e2937", border: "1px solid #334155", borderRadius: "12px", padding: "14px 18px", fontSize: "20px", color: estimatedOutput ? "#22c55e" : "#64748b" }}>
+                {estimatedOutput || "0.00"} {selectedToken.symbol}
               </div>
             </div>
 
+            <button 
+              onClick={executeTrade} 
+              disabled={!tradeAmount || isProcessing}
+              style={{ width: "100%", background: "#22c55e", color: "#000", border: "none", padding: "16px", borderRadius: "12px", fontWeight: "700", fontSize: "16px", opacity: (!tradeAmount || isProcessing) ? 0.6 : 1 }}
+            >
+              {isProcessing ? "Executing with Sponsored Gas..." : `Execute Trade (Gas Sponsored)`}
+            </button>
+
+            <div style={{ textAlign: "center", marginTop: "14px", fontSize: "13px", color: "#64748b" }}>
+              Gas fees sponsored by Base Paymaster
+            </div>
           </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }
